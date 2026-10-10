@@ -16,7 +16,7 @@ const geistMono = Geist_Mono({
 
 export const metadata: Metadata = {
   title: "TCG Tracker",
-  description: "Pokémon TCG and Magic: The Gathering prices and collection tracker",
+  description: "Pokémon, Magic: The Gathering and Riftbound prices and collection tracker",
 };
 
 export default function RootLayout({ children }: LayoutProps<"/">) {

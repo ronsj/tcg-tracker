@@ -6,7 +6,7 @@ export default function Home() {
     <main {...stylex.props(styles.main)}>
       <h1 {...stylex.props(styles.title)}>TCG Tracker</h1>
       <p {...stylex.props(styles.subtitle)}>
-        Pokémon and Magic: The Gathering prices and collections.
+        Pokémon, Magic: The Gathering and Riftbound prices and collections.
       </p>
     </main>
   );

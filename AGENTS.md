@@ -1,6 +1,6 @@
 # TCG Tracker
 
-Portfolio project (non-commercial): a Pokémon TCG + Magic: The Gathering price cache, then a collection tracker on top of it.
+Portfolio project (non-commercial): a Pokémon TCG + Magic: The Gathering + Riftbound price cache, then a collection tracker on top of it.
 
 ## Stack
 - Next.js (App Router, TypeScript)
@@ -16,6 +16,15 @@ Portfolio project (non-commercial): a Pokémon TCG + Magic: The Gathering price 
 - [ ] Sync jobs (catalog import, daily prices for tracked cards), with quota checks
 - [ ] Better Auth setup
 - [ ] Collection tracker (collection items reference `card_variant.id` and Better Auth `user.id`)
+
+## Games
+Rows in the `game` table (not an enum), so adding a game is a data change. Both APIs cover all three.
+
+| `game.id` | Name | `justtcg_game_id` | `tcgapi_game_slug` |
+|---|---|---|---|
+| `pokemon` | Pokémon | verify via `GET /games` | `pokemon` |
+| `mtg` | Magic: The Gathering | `magic-the-gathering` | `magic` |
+| `riftbound` | Riftbound: League of Legends TCG | verify via `GET /games` | `riftbound-league-of-legends-trading-card-game` |
 
 ## Data sources
 Both free tiers: about 100 requests/day each, non-commercial only. Every outbound call must go through the quota check (`api_usage_daily`).

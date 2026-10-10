@@ -1,5 +1,5 @@
 /**
- * TCG cache schema: Pokémon + Magic: The Gathering
+ * TCG cache schema: Pokémon + Magic: The Gathering + Riftbound
  * Sources: JustTCG (condition-level prices) and TCG API (catalog, images, sales volume)
  *
  * Column names are camelCase in TS and snake_case in Postgres (see `casing` in
@@ -46,7 +46,7 @@ const timestamps = {
 // Catalog
 // ────────────────────────────────────────────────────────────────────────────
 
-/** Our own slugs ('pokemon', 'mtg'), mapped to each API's game identifier. */
+/** Our own slugs ('pokemon', 'mtg', 'riftbound'), mapped to each API's game identifier. */
 export const game = pgTable("game", {
   id: text().primaryKey(),
   name: text().notNull(),
