@@ -9,6 +9,7 @@
  * its CLI and live in their own file; the collection tracker will reference `user.id`.
  */
 import { relations, sql } from "drizzle-orm";
+import { user } from "./auth-schema";
 import {
   check,
   date,
@@ -239,6 +240,35 @@ export const printingPriceDaily = pgTable(
 );
 
 // ────────────────────────────────────────────────────────────────────────────
+// Collections
+// ────────────────────────────────────────────────────────────────────────────
+
+/** One row per user × variant; adding an owned variant again bumps `quantity`. */
+export const collectionItem = pgTable(
+  "collection_item",
+  {
+    id: uuid().primaryKey().defaultRandom(),
+    userId: text()
+      .notNull()
+      .references(() => user.id, { onDelete: "cascade" }),
+    variantId: uuid()
+      .notNull()
+      .references(() => cardVariant.id, { onDelete: "cascade" }),
+    quantity: integer().notNull().default(1),
+    /** What the user paid per copy, if they recorded it */
+    acquiredPriceCents: integer(),
+    acquiredAt: date(),
+    notes: text(),
+    ...timestamps,
+  },
+  (t) => [
+    uniqueIndex("collection_item_user_variant_uq").on(t.userId, t.variantId),
+    index("collection_item_variant_idx").on(t.variantId),
+    check("collection_item_quantity_positive", sql`${t.quantity} > 0`),
+  ],
+);
+
+// ────────────────────────────────────────────────────────────────────────────
 // Sync bookkeeping. The free tiers allow about 100 requests/day per source, so we track every call.
 // ────────────────────────────────────────────────────────────────────────────
 
@@ -326,6 +356,12 @@ export const cardVariantRelations = relations(cardVariant, ({ one, many }) => ({
     references: [variantPriceCurrent.variantId],
   }),
   history: many(variantPriceDaily),
+  collectionItems: many(collectionItem),
+}));
+
+export const collectionItemRelations = relations(collectionItem, ({ one }) => ({
+  user: one(user, { fields: [collectionItem.userId], references: [user.id] }),
+  variant: one(cardVariant, { fields: [collectionItem.variantId], references: [cardVariant.id] }),
 }));
 
 export const variantPriceCurrentRelations = relations(variantPriceCurrent, ({ one }) => ({
@@ -356,5 +392,7 @@ export type Card = typeof card.$inferSelect;
 export type NewCard = typeof card.$inferInsert;
 export type CardVariant = typeof cardVariant.$inferSelect;
 export type NewCardVariant = typeof cardVariant.$inferInsert;
+export type CollectionItem = typeof collectionItem.$inferSelect;
+export type NewCollectionItem = typeof collectionItem.$inferInsert;
 export type CardCondition = (typeof cardCondition.enumValues)[number];
 export type ApiSource = (typeof apiSource.enumValues)[number];
