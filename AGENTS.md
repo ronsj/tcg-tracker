@@ -5,7 +5,7 @@ Portfolio project (non-commercial): a Pokémon TCG + Magic: The Gathering + Rift
 ## Stack
 - Next.js (App Router, TypeScript)
 - Neon Postgres + Drizzle ORM (`@neondatabase/serverless`, `drizzle-orm/neon-http`)
-- Better Auth (its tables come from its CLI, so don't hand-write them)
+- Better Auth (its tables come from its CLI, so don't hand-write them: `pnpm auth:generate` rewrites `src/db/auth-schema.ts`, then `pnpm db:generate` + `pnpm db:migrate`)
 - StyleX for styling
 
 ## Status
@@ -17,7 +17,7 @@ Portfolio project (non-commercial): a Pokémon TCG + Magic: The Gathering + Rift
 - [x] Catalog import from TCG API: `pnpm sync:catalog <gameId> [--max-requests N]` (`src/lib/sync/`). Riftbound imported (15 sets, 1,722 cards, 29 requests).
 - [x] JustTCG condition prices fetched on first card view (`src/lib/sync/justtcg-prices.ts`, 1 request per card per 24h), creating `card_variant` rows. Pages: `/` (games → sets), `/sets/[id]`, `/cards/[id]`.
 - [ ] Daily price refresh for tracked cards
-- [ ] Better Auth setup
+- [x] Better Auth (email + password): `src/lib/auth.ts`, `src/lib/auth-client.ts`, `src/lib/session.ts`; pages `/sign-in`, `/sign-up`, `/account`
 - [ ] Collection tracker (collection items reference `card_variant.id` and Better Auth `user.id`)
 
 ## Games
@@ -64,6 +64,11 @@ Both free tiers: about 100 requests/day each, non-commercial only. Every outboun
 ## Next.js notes
 - Cache Components is on. Catalog pages use `"use cache"` + `cacheTag` (`sets`, `set:<id>`, `card:<id>`); anything reading request-time data or calling an API sits inside `<Suspense>`. `params` is awaited inside the Suspense boundary, not in the page's default export.
 - In dev, the first render of a route logs a `NeonDbError: AbortError` from the prerender pass abandoning an in-flight query. It's dev-only noise; the real render succeeds.
+
+## Auth notes
+- Session reads (`getSession()` / `requireSession()` in `src/lib/session.ts`) use `headers()`, so they must sit inside `<Suspense>`; `SiteHeader` does this for the user menu.
+- `.env.local` changes need a dev-server restart; Better Auth warns "Base URL is not set" if it started without `BETTER_AUTH_URL`.
+- Collection rows will reference `user.id` (a `text` column, not uuid).
 
 ## Sync strategy (free-tier budget)
 - Import the catalog once, then refresh per set; resume via `sync_run.cursor`.
