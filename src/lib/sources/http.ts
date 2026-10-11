@@ -69,12 +69,13 @@ function parseError(body: unknown, fallback: string): { message: string; code?: 
 function parseRemaining(source: ApiSource, headers: Headers, body: unknown): number | null {
   const fromBody = (v: unknown) => (typeof v === "number" && Number.isFinite(v) ? v : null);
   if (source === "tcgapi") {
+    // Header only: public endpoints (/games, /games/:slug/sets) send no header and a
+    // placeholder `rate_limit.daily_remaining: 0` in the body, which would block us.
     const header = headers.get("X-RateLimit-Remaining");
     if (header !== null && header.trim() !== "" && Number.isFinite(Number(header))) {
       return Number(header);
     }
-    const limit = (body as { rate_limit?: { daily_remaining?: unknown } } | null)?.rate_limit;
-    return fromBody(limit?.daily_remaining);
+    return null;
   }
   // JustTCG reports both monthly and daily remaining; whichever runs out first blocks us.
   const meta = (
