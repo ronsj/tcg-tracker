@@ -61,6 +61,7 @@ Both free tiers: about 100 requests/day each, non-commercial only. Every outboun
 - External IDs are stored as `text` (TCG API's ID type isn't documented).
 - `casing: "snake_case"` in both the Drizzle config and the client: camelCase in TS, snake_case in Postgres.
 - Migrations use Neon's direct (non-pooled) URL: `DATABASE_URL_UNPOOLED`.
+- Neon branches: `production` is the deployed database (Vercel, GitHub Actions sync job); `dev` is a child branch for local work and is what `.env.local` points at (`neon checkout dev` pulls its URLs; `.neon` is git-ignored). Test migrations on a branch before `production`. When `dev` goes stale, reset it from its parent instead of re-running syncs against it (no API quota spent).
 
 ## Next.js notes
 - Cache Components is on. Catalog pages use `"use cache"` + `cacheTag` (`sets`, `set:<id>`, `card:<id>`); anything reading request-time data or calling an API sits inside `<Suspense>`. `params` is awaited inside the Suspense boundary, not in the page's default export.
