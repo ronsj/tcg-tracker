@@ -2,6 +2,7 @@ import { and, eq, inArray, isNotNull, isNull, lt, or, sql } from "drizzle-orm";
 import { db } from "@/db";
 import { card, cardVariant, collectionItem } from "@/db/schema";
 import { batchCards, JUSTTCG_BATCH_LIMIT } from "@/lib/sources/justtcg";
+import { SourceApiError } from "@/lib/sources/http";
 import { QuotaExceededError } from "@/lib/sources/quota";
 import { persistJustTcgCard } from "./justtcg-prices";
 import { finishRun, startRun, updateRun } from "./run";
@@ -83,7 +84,13 @@ export async function refreshTrackedJustTcg({
           requestsUsed--;
           return await finish("partial");
         }
-        throw err;
+        // JustTCG 404s when it knows none of the cards (e.g. an unreleased set):
+        // treat the whole batch as missing so they get stamped, not retried daily.
+        if (err instanceof SourceApiError && err.status === 404) {
+          res = { data: [] };
+        } else {
+          throw err;
+        }
       }
 
       const now = new Date();

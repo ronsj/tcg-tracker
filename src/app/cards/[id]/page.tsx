@@ -127,9 +127,11 @@ async function ConditionPrices({ cardId }: { cardId: string }) {
         <p {...stylex.props(styles.muted)}>
           {reason === "quota"
             ? "Condition prices unavailable: daily API budget spent. Try again tomorrow."
-            : reason === "no-tcgplayer-id"
-              ? "No condition prices: this card has no TCGplayer ID."
-              : "No condition prices for this card on JustTCG."}
+            : reason === "unavailable"
+              ? "Condition prices are temporarily unavailable. Try again later."
+              : reason === "no-tcgplayer-id"
+                ? "No condition prices: this card has no TCGplayer ID."
+                : "No condition prices for this card on JustTCG yet."}
         </p>
       ) : (
         <div {...stylex.props(styles.scroll)}>

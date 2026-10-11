@@ -1,6 +1,7 @@
 import { eq, sql } from "drizzle-orm";
 import { db } from "@/db";
 import { card, cardVariant, variantPriceCurrent, variantPriceDaily } from "@/db/schema";
+import { SourceApiError } from "@/lib/sources/http";
 import { getCards } from "@/lib/sources/justtcg";
 import { QuotaExceededError } from "@/lib/sources/quota";
 import { mapJustTcgCard } from "./justtcg-mapping";
@@ -9,7 +10,7 @@ const DAY_MS = 24 * 60 * 60 * 1000;
 
 export type EnsurePricesResult = {
   fetched: boolean;
-  reason?: "fresh" | "no-tcgplayer-id" | "quota" | "not-found";
+  reason?: "fresh" | "no-tcgplayer-id" | "quota" | "not-found" | "unavailable";
 };
 
 // In-flight fetches by card, so concurrent renders of one card share a request.
@@ -69,6 +70,16 @@ async function refresh(cardId: string, maxAgeMs: number): Promise<EnsurePricesRe
   } catch (err) {
     // A page view must never crash because the daily budget is spent.
     if (err instanceof QuotaExceededError) return { fetched: false, reason: "quota" };
+    if (err instanceof SourceApiError) {
+      // 404: JustTCG doesn't have the card (e.g. a set it hasn't indexed yet).
+      // Stamp it so the next views don't spend a request each.
+      if (err.status === 404) {
+        await db.update(card).set({ justtcgPricesFetchedAt: new Date() }).where(eq(card.id, row.id));
+        return { fetched: true, reason: "not-found" };
+      }
+      console.error(`JustTCG fetch failed for card ${row.id}: ${err.message}`);
+      return { fetched: false, reason: "unavailable" };
+    }
     throw err;
   }
 }
