@@ -110,7 +110,7 @@ scripts/          CLI entry points for the sync jobs
 
 ## Deployment
 
-The app deploys to Vercel from `main`; pull requests get preview deployments that use the Neon `dev` branch. GitHub Actions runs `pnpm sync:prices` daily at 06:00 UTC and needs `DATABASE_URL`, `JUSTTCG_API_KEY` and `TCGAPI_API_KEY` as repository secrets. See `AGENTS.md` for the full operational notes, API quirks and conventions.
+The app deploys to Vercel from `main`; pull requests get preview deployments that use the Neon `dev` branch. GitHub Actions runs `pnpm sync:prices` daily at 06:00 UTC, then continues any in-progress catalog imports, and needs `DATABASE_URL`, `JUSTTCG_API_KEY` and `TCGAPI_API_KEY` as repository secrets. See `AGENTS.md` for the full operational notes, API quirks and conventions.
 
 ## Notes
 

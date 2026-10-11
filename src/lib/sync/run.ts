@@ -99,3 +99,14 @@ export async function findActive(source: ApiSource, job: string): Promise<SyncRu
     .limit(1);
   return row ?? null;
 }
+
+/** The most recent run of a job regardless of status, or null if it has never run. */
+export async function findLatestRun(source: ApiSource, job: string): Promise<SyncRun | null> {
+  const [row] = await db
+    .select()
+    .from(syncRun)
+    .where(and(eq(syncRun.source, source), eq(syncRun.job, job)))
+    .orderBy(desc(syncRun.startedAt))
+    .limit(1);
+  return row ?? null;
+}

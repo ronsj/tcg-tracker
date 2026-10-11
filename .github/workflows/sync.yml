@@ -27,6 +27,11 @@ concurrency:
   group: sync
   cancel-in-progress: false
 
+# Catalogs the scheduled run keeps importing (resumable, oldest sets first) until each
+# one is complete. Space-separated game ids; empty to disable.
+env:
+  CATALOG_GAMES: pokemon
+
 jobs:
   sync:
     runs-on: ubuntu-latest
@@ -52,12 +57,23 @@ jobs:
           DATABASE_URL: ${{ secrets.DATABASE_URL }}
           JUSTTCG_API_KEY: ${{ secrets.JUSTTCG_API_KEY }}
           TCGAPI_API_KEY: ${{ secrets.TCGAPI_API_KEY }}
-          MAX_REQUESTS: ${{ inputs.max_requests || '40' }}
+          # Scheduled runs keep most of the TCG API budget for the catalog step below.
+          MAX_REQUESTS: ${{ inputs.max_requests || '20' }}
           SOURCE: ${{ inputs.source }}
         run: |
           args=(--max-requests "$MAX_REQUESTS")
           if [ -n "$SOURCE" ]; then args+=(--source "$SOURCE"); fi
           pnpm exec tsx scripts/sync-prices.ts "${args[@]}"
+
+      - name: Continue catalog imports
+        if: ${{ github.event_name == 'schedule' && env.CATALOG_GAMES != '' }}
+        env:
+          DATABASE_URL: ${{ secrets.DATABASE_URL }}
+          TCGAPI_API_KEY: ${{ secrets.TCGAPI_API_KEY }}
+        run: |
+          for game in $CATALOG_GAMES; do
+            pnpm exec tsx scripts/sync-catalog.ts "$game" --max-requests 35 --only-if-incomplete
+          done
 
       - name: Import catalog
         if: ${{ github.event_name == 'workflow_dispatch' && inputs.job == 'catalog' }}
