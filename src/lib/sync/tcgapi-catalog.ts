@@ -1,4 +1,4 @@
-import { eq, sql } from "drizzle-orm";
+import { eq, inArray, sql } from "drizzle-orm";
 import { db } from "@/db";
 import { card, cardSet, game, printingPriceCurrent, printingPriceDaily } from "@/db/schema";
 import { QuotaExceededError } from "@/lib/sources/quota";
@@ -39,23 +39,44 @@ const byReleaseDate = (a: TcgApiSet, b: TcgApiSet) => {
 export async function importTcgApiCatalog({
   gameId,
   maxRequests = 40,
+  setIds,
 }: {
   gameId: string;
   maxRequests?: number;
+  /**
+   * Our `card_set.id`s. Skips the set listing and imports just these sets, in the order
+   * given, as a fresh `prices:sets:<game>` run (never resumed, never blocks the catalog job).
+   */
+  setIds?: string[];
 }): Promise<CatalogImportSummary> {
   const [gameRow] = await db.select().from(game).where(eq(game.id, gameId)).limit(1);
   if (!gameRow) throw new Error(`Unknown game: ${gameId}`);
   if (!gameRow.tcgapiGameSlug) throw new Error(`Game ${gameId} has no tcgapiGameSlug`);
   const slug = gameRow.tcgapiGameSlug;
 
-  const job = `catalog:${gameId}`;
+  const job = setIds ? `prices:sets:${gameId}` : `catalog:${gameId}`;
   const active = await findActive(SOURCE, job);
   if (active) {
     throw new Error(`A ${job} run is already in progress (${active.id}, started ${active.startedAt.toISOString()})`);
   }
 
-  const resumable = await findResumable(SOURCE, job);
-  let cursor: CatalogCursor | null = (resumable?.cursor as CatalogCursor | null | undefined) ?? null;
+  let cursor: CatalogCursor | null = null;
+  if (setIds) {
+    const rows =
+      setIds.length > 0
+        ? await db
+            .select({ id: cardSet.id, tcgapiSetId: cardSet.tcgapiSetId })
+            .from(cardSet)
+            .where(inArray(cardSet.id, setIds))
+        : [];
+    const byId = new Map(rows.map((r) => [r.id, r.tcgapiSetId]));
+    // Keep the caller's order (stalest first) and drop sets TCG API doesn't know.
+    const tcgapiSetIds = setIds.flatMap((id) => byId.get(id) ?? []);
+    cursor = { setIds: tcgapiSetIds, setIndex: 0, page: 1 };
+  } else {
+    const resumable = await findResumable(SOURCE, job);
+    cursor = (resumable?.cursor as CatalogCursor | null | undefined) ?? null;
+  }
   const runId = await startRun(SOURCE, job, cursor);
 
   let requestsUsed = 0;

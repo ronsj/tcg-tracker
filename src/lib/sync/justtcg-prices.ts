@@ -64,7 +64,7 @@ async function refresh(cardId: string, maxAgeMs: number): Promise<EnsurePricesRe
       return { fetched: true, reason: "not-found" };
     }
 
-    await persist(row.id, match, now);
+    await persistJustTcgCard(row.id, match, now);
     return { fetched: true };
   } catch (err) {
     // A page view must never crash because the daily budget is spent.
@@ -73,7 +73,12 @@ async function refresh(cardId: string, maxAgeMs: number): Promise<EnsurePricesRe
   }
 }
 
-async function persist(cardId: string, match: Parameters<typeof mapJustTcgCard>[0], now: Date) {
+/** Write one JustTCG card's variants and prices, then stamp the card as fresh. */
+export async function persistJustTcgCard(
+  cardId: string,
+  match: Parameters<typeof mapJustTcgCard>[0],
+  now: Date,
+) {
   const { cardPatch, variants } = mapJustTcgCard(match);
 
   // neon-http has no multi-statement transactions, so write in dependency order and
