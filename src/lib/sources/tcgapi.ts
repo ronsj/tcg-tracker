@@ -30,10 +30,13 @@ export interface TcgApiSet {
   /** ISO date */
   release_date: string | null;
   card_count: number;
+  image_tcgplayer_id?: number | null;
+  tcg_group_id?: number | null;
   image_url: string | null;
   set_icon_url: string | null;
-  game_name: string;
-  game_slug: string;
+  /** Not present on the per-game set listing */
+  game_name?: string;
+  game_slug?: string;
 }
 
 export interface TcgApiCard {
@@ -132,11 +135,51 @@ export function listSets(params: PageParams & { game?: string } = {}) {
   });
 }
 
+/** Public endpoint, but it still goes through sourceFetch so it is counted against the quota. */
+export function listGameSets(slug: string, params: PageParams = {}) {
+  return sourceFetch<TcgApiEnvelope<TcgApiSet[]>>({
+    source: "tcgapi",
+    path: `/games/${slug}/sets`,
+    query: pageQuery(params),
+    cacheTtlSeconds: DAY,
+  });
+}
+
+/**
+ * A row from GET /sets/:id/cards: card fields plus one printing's prices, flattened.
+ * A card with several printings appears once per printing, and sealed products can
+ * come back even when `type` is "Cards", so check `product_type`.
+ */
+export interface TcgApiSetCardRow {
+  id: number;
+  name: string;
+  clean_name?: string | null;
+  number?: string | null;
+  /** "None" when the card has no rarity */
+  rarity?: string | null;
+  tcgplayer_id: number;
+  /** "Cards" or "Sealed Products" */
+  product_type: string;
+  foil_only?: boolean | number;
+  total_listings?: number | null;
+  shipping_category_id?: number | null;
+  /** "Normal" or "Foil" */
+  printing: string;
+  market_price?: number | null;
+  /** UTC date (YYYY-MM-DD) */
+  market_price_as_of?: string | null;
+  low_price?: number | null;
+  median_price?: number | null;
+  lowest_with_shipping?: number | null;
+  price_updated_at?: string | null;
+  image_url?: string | null;
+}
+
 export function getSetCards(
   setId: Id,
   params: PageParams & { type?: "Cards" | "Sealed Products" } = {},
 ) {
-  return sourceFetch<TcgApiEnvelope<TcgApiCard[]>>({
+  return sourceFetch<TcgApiEnvelope<TcgApiSetCardRow[]>>({
     source: "tcgapi",
     path: `/sets/${setId}/cards`,
     query: { type: params.type, ...pageQuery(params) },

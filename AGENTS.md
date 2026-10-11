@@ -14,7 +14,8 @@ Portfolio project (non-commercial): a Pokémon TCG + Magic: The Gathering + Rift
 - [x] Initial migrations generated: `drizzle/0000_enable_pg_trgm.sql` (runs before the trigram index), `drizzle/0001_cache_schema.sql`
 - [x] Neon project created, migrations applied
 - [x] API clients with quota checks (`src/lib/sources/`) + normalization (`src/lib/normalize/`); games seeded (`pnpm db:seed`)
-- [ ] Sync jobs (catalog import, daily prices for tracked cards), with quota checks
+- [x] Catalog import from TCG API: `pnpm sync:catalog <gameId> [--max-requests N]` (`src/lib/sync/`). Riftbound imported (15 sets, 1,722 cards, 29 requests).
+- [ ] Daily prices for tracked cards; JustTCG variant data fetched lazily
 - [ ] Better Auth setup
 - [ ] Collection tracker (collection items reference `card_variant.id` and Better Auth `user.id`)
 
@@ -45,7 +46,10 @@ Both free tiers: about 100 requests/day each, non-commercial only. Every outboun
 - Prices: by printing only (`market_price`, `low_price`, `median_price`, `lowest_with_shipping`, `buylist_price`, `price_change_24h|7d|30d`, `market_price_as_of`). Per-condition prices, set price dumps and bulk endpoints are Pro-only.
 - Free tier: `/cards/:id/history` returns only the last 7 days (date, printing, market, low). Sales volume is in `/history/detailed`, which is Pro+, so `printing_price_daily.sales_volume`/`avg_sales_cents` stay NULL on free.
 - Search results are flattened card + one printing's price and have no `set_id`; use `GET /cards/:id` for that.
-- Reports quota in `X-RateLimit-Remaining` and body `rate_limit.daily_remaining`. Full reference: https://tcgapi.dev/llms-full.txt
+- Reports quota in the `X-RateLimit-Remaining` header on keyed endpoints. Public endpoints (`/games`, `/games/:slug/sets`) send no header and a placeholder `rate_limit.daily_remaining: 0` in the body, so never trust the body value.
+- `/sets/:id/cards` returns sealed products unless you pass `type=Cards`. Each row is one card plus one printing's price (no `custom_attributes`).
+- A set's `card_count` overcounts what `/sets/:id/cards` returns (it includes sealed product and apparently unpriced promos), so don't use it to check an import.
+- Full reference: https://tcgapi.dev/llms-full.txt
 
 ## Schema conventions
 - **TCGplayer product ID is the cross-source join key** (`card.tcgplayer_product_id`, unique). Sets are matched across sources through their cards, not by name.
