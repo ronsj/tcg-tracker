@@ -11,7 +11,8 @@ Portfolio project (non-commercial): a Pokémon TCG + Magic: The Gathering + Rift
 ## Status
 - [x] Cache schema drafted: `src/db/schema.ts`, `src/db/index.ts`, `drizzle.config.ts`
 - [x] Scaffold Next.js (16, App Router, `src/`, Turbopack, pnpm). StyleX via its Babel + PostCSS plugins (`babel.config.js`, `postcss.config.js`, `@stylex` directive in `src/app/globals.css`).
-- [ ] Enable `pg_trgm` before the first migration (custom migration or Neon SQL editor): `CREATE EXTENSION IF NOT EXISTS pg_trgm;`
+- [x] Initial migrations generated: `drizzle/0000_enable_pg_trgm.sql` (runs before the trigram index), `drizzle/0001_cache_schema.sql`
+- [ ] Create the Neon project, fill `.env.local`, run `pnpm db:migrate`
 - [ ] API clients + normalization layer (condition strings → `NM|LP|MP|HP|DMG`)
 - [ ] Sync jobs (catalog import, daily prices for tracked cards), with quota checks
 - [ ] Better Auth setup
