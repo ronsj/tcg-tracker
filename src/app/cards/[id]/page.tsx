@@ -2,12 +2,16 @@ import { cacheLife, cacheTag } from "next/cache";
 import Image from "next/image";
 import Link from "next/link";
 import { notFound } from "next/navigation";
+import { connection } from "next/server";
 import { Suspense, type ReactNode } from "react";
 import * as stylex from "@stylexjs/stylex";
 import { colors } from "@/app/tokens.stylex";
 import { formatCents, formatDate, formatPct } from "@/lib/format";
 import { CONDITION_LABELS } from "@/lib/normalize/condition";
+import { OwnedControl } from "@/components/OwnedControl";
 import { getCard, getCardVariantPrices } from "@/lib/queries/cards";
+import { getOwnedQuantities } from "@/lib/queries/collection";
+import { getSession } from "@/lib/session";
 import { ensureJustTcgPrices } from "@/lib/sync/justtcg-prices";
 
 const UUID_RE = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
@@ -110,8 +114,11 @@ function changeStyle(n: number | null) {
 
 // Not cached: reads the DB at request time and may call JustTCG on first view.
 async function ConditionPrices({ cardId }: { cardId: string }) {
+  // Request-time work: keeps the prerender pass from starting (and aborting) the fetch.
+  await connection();
   const { reason } = await ensureJustTcgPrices(cardId);
-  const variants = await getCardVariantPrices(cardId);
+  const [variants, session] = await Promise.all([getCardVariantPrices(cardId), getSession()]);
+  const owned = session ? await getOwnedQuantities(session.user.id, cardId) : null;
 
   return (
     <section>
@@ -136,6 +143,7 @@ async function ConditionPrices({ cardId }: { cardId: string }) {
                 <th {...stylex.props(styles.th, styles.num)}>7d</th>
                 <th {...stylex.props(styles.th, styles.num)}>30d</th>
                 <th {...stylex.props(styles.th, styles.num)}>Observed</th>
+                {owned && <th {...stylex.props(styles.th)}>Owned</th>}
               </tr>
             </thead>
             <tbody>
@@ -171,11 +179,28 @@ async function ConditionPrices({ cardId }: { cardId: string }) {
                     {formatPct(v.change30dPct)}
                   </td>
                   <td {...stylex.props(styles.td, styles.num)}>{formatDate(v.observedAt)}</td>
+                  {owned && (
+                    <td {...stylex.props(styles.td)}>
+                      <OwnedControl
+                        variantId={v.id}
+                        itemId={owned.get(v.id)?.itemId}
+                        quantity={owned.get(v.id)?.quantity ?? 0}
+                      />
+                    </td>
+                  )}
                 </tr>
               ))}
             </tbody>
           </table>
         </div>
+      )}
+      {!owned && variants.length > 0 && (
+        <p {...stylex.props(styles.note)}>
+          <Link href="/sign-in" {...stylex.props(styles.noteLink)}>
+            Sign in
+          </Link>{" "}
+          to track what you own
+        </p>
       )}
       <p {...stylex.props(styles.note)}>Prices from JustTCG</p>
     </section>
@@ -266,5 +291,8 @@ const styles = stylex.create({
     marginTop: 8,
     fontSize: 12,
     color: colors.muted,
+  },
+  noteLink: {
+    textDecoration: "underline",
   },
 });

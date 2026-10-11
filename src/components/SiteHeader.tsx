@@ -39,6 +39,9 @@ async function UserMenu() {
 
   return (
     <div {...stylex.props(styles.menu)}>
+      <Link href="/collection" {...stylex.props(styles.link)}>
+        Collection
+      </Link>
       <Link href="/account" {...stylex.props(styles.link, styles.email)}>
         {session.user.email}
       </Link>
