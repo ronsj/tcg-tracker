@@ -15,7 +15,8 @@ Portfolio project (non-commercial): a Pokémon TCG + Magic: The Gathering + Rift
 - [x] Neon project created, migrations applied
 - [x] API clients with quota checks (`src/lib/sources/`) + normalization (`src/lib/normalize/`); games seeded (`pnpm db:seed`)
 - [x] Catalog import from TCG API: `pnpm sync:catalog <gameId> [--max-requests N]` (`src/lib/sync/`). Riftbound imported (15 sets, 1,722 cards, 29 requests).
-- [ ] Daily prices for tracked cards; JustTCG variant data fetched lazily
+- [x] JustTCG condition prices fetched on first card view (`src/lib/sync/justtcg-prices.ts`, 1 request per card per 24h), creating `card_variant` rows. Pages: `/` (games → sets), `/sets/[id]`, `/cards/[id]`.
+- [ ] Daily price refresh for tracked cards
 - [ ] Better Auth setup
 - [ ] Collection tracker (collection items reference `card_variant.id` and Better Auth `user.id`)
 
@@ -59,6 +60,10 @@ Both free tiers: about 100 requests/day each, non-commercial only. Every outboun
 - External IDs are stored as `text` (TCG API's ID type isn't documented).
 - `casing: "snake_case"` in both the Drizzle config and the client: camelCase in TS, snake_case in Postgres.
 - Migrations use Neon's direct (non-pooled) URL: `DATABASE_URL_UNPOOLED`.
+
+## Next.js notes
+- Cache Components is on. Catalog pages use `"use cache"` + `cacheTag` (`sets`, `set:<id>`, `card:<id>`); anything reading request-time data or calling an API sits inside `<Suspense>`. `params` is awaited inside the Suspense boundary, not in the page's default export.
+- In dev, the first render of a route logs a `NeonDbError: AbortError` from the prerender pass abandoning an in-flight query. It's dev-only noise; the real render succeeds.
 
 ## Sync strategy (free-tier budget)
 - Import the catalog once, then refresh per set; resume via `sync_run.cursor`.
