@@ -16,9 +16,10 @@ Portfolio project (non-commercial): a Pokémon TCG + Magic: The Gathering + Rift
 - [x] API clients with quota checks (`src/lib/sources/`) + normalization (`src/lib/normalize/`); games seeded (`pnpm db:seed`)
 - [x] Catalog import from TCG API: `pnpm sync:catalog <gameId> [--max-requests N]` (`src/lib/sync/`). Riftbound imported (15 sets, 1,722 cards, 29 requests).
 - [x] JustTCG condition prices fetched on first card view (`src/lib/sync/justtcg-prices.ts`, 1 request per card per 24h), creating `card_variant` rows. Pages: `/` (games → sets), `/sets/[id]`, `/cards/[id]`.
-- [ ] Daily price refresh for tracked cards
+- [x] Daily price refresh for tracked cards: `pnpm sync:prices [--max-requests N] [--source justtcg|tcgapi]` (JustTCG batches of 20 per request; TCG API re-pages the sets that contain tracked cards)
 - [x] Better Auth (email + password): `src/lib/auth.ts`, `src/lib/auth-client.ts`, `src/lib/session.ts`; pages `/sign-in`, `/sign-up`, `/account`
-- [ ] Collection tracker (collection items reference `card_variant.id` and Better Auth `user.id`)
+- [x] Collection tracker: `collection_item` (user × variant, quantity, optional cost basis), server actions in `src/lib/actions/collection.ts`, `/collection` page, Owned column on card pages
+- [ ] Schedule `pnpm sync:prices` daily (GitHub Actions cron or similar; needs the env secrets)
 
 ## Games
 Rows in the `game` table (not an enum), seeded by `src/db/seed.ts`. Both APIs cover all three.
@@ -63,7 +64,8 @@ Both free tiers: about 100 requests/day each, non-commercial only. Every outboun
 
 ## Next.js notes
 - Cache Components is on. Catalog pages use `"use cache"` + `cacheTag` (`sets`, `set:<id>`, `card:<id>`); anything reading request-time data or calling an API sits inside `<Suspense>`. `params` is awaited inside the Suspense boundary, not in the page's default export.
-- In dev, the first render of a route logs a `NeonDbError: AbortError` from the prerender pass abandoning an in-flight query. It's dev-only noise; the real render succeeds.
+- Components that do request-time I/O (session reads, fetch-on-view) call `await connection()` first. Without it, dev's prerender pass starts the DB query, hits Better Auth's `new Date()` ("unstable value" insight) and then aborts the query (`NeonDbError: AbortError`).
+- Server actions call `refresh()` from `next/cache` after writing so the dynamic parts of the page re-render in the same round trip.
 
 ## Auth notes
 - Session reads (`getSession()` / `requireSession()` in `src/lib/session.ts`) use `headers()`, so they must sit inside `<Suspense>`; `SiteHeader` does this for the user menu.
@@ -72,7 +74,7 @@ Both free tiers: about 100 requests/day each, non-commercial only. Every outboun
 
 ## Sync strategy (free-tier budget)
 - Import the catalog once, then refresh per set; resume via `sync_run.cursor`.
-- Daily prices only for cards in collections/watchlists, stalest first (`card.*_prices_fetched_at`).
+- Daily prices only for cards in collections, stalest first (`card.*_prices_fetched_at`, considered stale after 20h). `sync:prices` gives JustTCG up to half the budget first (20 cards per request), then TCG API gets the rest (one request per 100 cards of each set that has tracked cards).
 - Everything else: fetch on first view, read from cache afterward. Raw search responses go in `api_response_cache`.
 - Storage budget: Neon free = 1 GB/project. Daily variant history ≈ 2 MB/day at about 20K rows.
 
