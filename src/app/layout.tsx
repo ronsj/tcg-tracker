@@ -1,19 +1,9 @@
 import type { Metadata } from "next";
-import { Geist, Geist_Mono } from "next/font/google";
-import * as stylex from "@stylexjs/stylex";
-import { colors, fonts } from "./tokens.stylex";
-import { SiteHeader } from "@/components/SiteHeader";
+import { Suspense } from "react";
+import { AppFrame } from "@/components/AppFrame";
+import { UserMenu } from "@/components/UserMenu";
+import { Providers } from "./providers";
 import "./globals.css";
-
-const geistSans = Geist({
-  variable: "--font-geist-sans",
-  subsets: ["latin"],
-});
-
-const geistMono = Geist_Mono({
-  variable: "--font-geist-mono",
-  subsets: ["latin"],
-});
 
 export const metadata: Metadata = {
   title: "TCG Tracker",
@@ -22,20 +12,20 @@ export const metadata: Metadata = {
 
 export default function RootLayout({ children }: LayoutProps<"/">) {
   return (
-    <html lang="en" className={`${geistSans.variable} ${geistMono.variable}`}>
-      <body {...stylex.props(styles.body)}>
-        <SiteHeader />
-        {children}
+    <html lang="en">
+      <body>
+        <Providers>
+          <AppFrame
+            userMenu={
+              <Suspense fallback={null}>
+                <UserMenu />
+              </Suspense>
+            }
+          >
+            {children}
+          </AppFrame>
+        </Providers>
       </body>
     </html>
   );
 }
-
-const styles = stylex.create({
-  body: {
-    minHeight: "100dvh",
-    fontFamily: fonts.sans,
-    color: colors.foreground,
-    backgroundColor: colors.background,
-  },
-});

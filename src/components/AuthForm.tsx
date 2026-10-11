@@ -1,16 +1,23 @@
 "use client";
 
 import { useState, type SubmitEvent } from "react";
-import Link from "next/link";
 import { useRouter } from "next/navigation";
-import * as stylex from "@stylexjs/stylex";
-import { colors } from "@/app/tokens.stylex";
+import { Banner } from "@astryxdesign/core/Banner";
+import { Button } from "@astryxdesign/core/Button";
+import { FormLayout } from "@astryxdesign/core/FormLayout";
+import { VStack } from "@astryxdesign/core/Layout";
+import { Link } from "@astryxdesign/core/Link";
+import { Text } from "@astryxdesign/core/Text";
+import { TextInput } from "@astryxdesign/core/TextInput";
 import { signIn, signUp } from "@/lib/auth-client";
 
 export function AuthForm({ mode }: { mode: "sign-in" | "sign-up" }) {
   const router = useRouter();
   const [error, setError] = useState<string | null>(null);
   const [pending, setPending] = useState(false);
+  const [name, setName] = useState("");
+  const [email, setEmail] = useState("");
+  const [password, setPassword] = useState("");
   const isSignUp = mode === "sign-up";
 
   async function onSubmit(event: SubmitEvent<HTMLFormElement>) {
@@ -40,143 +47,62 @@ export function AuthForm({ mode }: { mode: "sign-in" | "sign-up" }) {
     router.refresh();
   }
 
+  // TextInput's typings omit native validation attributes, but it spreads them onto the <input>.
+  const requiredAttr = { required: true };
+  const passwordAttrs = { required: true, minLength: 8 };
+
   return (
-    <>
-      <form onSubmit={onSubmit} {...stylex.props(styles.form)}>
-        {isSignUp && (
-          <div {...stylex.props(styles.field)}>
-            <label htmlFor="name" {...stylex.props(styles.label)}>
-              Name
-            </label>
-            <input
-              id="name"
-              name="name"
-              type="text"
+    <VStack gap={4}>
+      <form onSubmit={onSubmit}>
+        <FormLayout defaultOptionality="required">
+          {isSignUp && (
+            <TextInput
+              label="Name"
+              htmlName="name"
               autoComplete="name"
-              required
-              {...stylex.props(styles.input)}
+              value={name}
+              onChange={setName}
+              {...requiredAttr}
             />
-          </div>
-        )}
-        <div {...stylex.props(styles.field)}>
-          <label htmlFor="email" {...stylex.props(styles.label)}>
-            Email
-          </label>
-          <input
-            id="email"
-            name="email"
+          )}
+          <TextInput
+            label="Email"
             type="email"
+            htmlName="email"
             autoComplete="email"
-            required
-            {...stylex.props(styles.input)}
+            value={email}
+            onChange={setEmail}
+            {...requiredAttr}
           />
-        </div>
-        <div {...stylex.props(styles.field)}>
-          <label htmlFor="password" {...stylex.props(styles.label)}>
-            Password
-          </label>
-          <input
-            id="password"
-            name="password"
+          <TextInput
+            label="Password"
             type="password"
+            htmlName="password"
             autoComplete={isSignUp ? "new-password" : "current-password"}
-            minLength={8}
-            required
-            {...stylex.props(styles.input)}
+            value={password}
+            onChange={setPassword}
+            {...passwordAttrs}
           />
-        </div>
-        {error && (
-          <p role="alert" {...stylex.props(styles.error)}>
-            {error}
-          </p>
-        )}
-        <button type="submit" disabled={pending} {...stylex.props(styles.button, pending && styles.disabled)}>
-          {pending ? "Please wait…" : isSignUp ? "Sign up" : "Sign in"}
-        </button>
+          {error && <Banner status="error" title={error} />}
+          <Button
+            type="submit"
+            variant="primary"
+            label={isSignUp ? "Sign up" : "Sign in"}
+            isLoading={pending}
+          />
+        </FormLayout>
       </form>
-      <p {...stylex.props(styles.switch)}>
+      <Text type="supporting">
         {isSignUp ? (
           <>
-            Have an account? <Link href="/sign-in" {...stylex.props(styles.link)}>Sign in</Link>
+            Have an account? <Link href="/sign-in">Sign in</Link>
           </>
         ) : (
           <>
-            No account? <Link href="/sign-up" {...stylex.props(styles.link)}>Sign up</Link>
+            No account? <Link href="/sign-up">Sign up</Link>
           </>
         )}
-      </p>
-    </>
+      </Text>
+    </VStack>
   );
 }
-
-const styles = stylex.create({
-  form: {
-    display: "flex",
-    flexDirection: "column",
-    gap: 16,
-    marginTop: 16,
-  },
-  field: {
-    display: "flex",
-    flexDirection: "column",
-    gap: 4,
-  },
-  label: {
-    fontSize: 14,
-    fontWeight: 500,
-  },
-  input: {
-    boxSizing: "border-box",
-    width: "100%",
-    paddingBlock: 8,
-    paddingInline: 12,
-    fontFamily: "inherit",
-    fontSize: 16,
-    color: colors.foreground,
-    outline: "none",
-    backgroundColor: colors.inputBg,
-    borderColor: {
-      default: colors.border,
-      ":focus-visible": colors.accent,
-    },
-    borderStyle: "solid",
-    borderWidth: 1,
-    borderRadius: 6,
-  },
-  error: {
-    paddingBlock: 8,
-    paddingInline: 12,
-    fontSize: 14,
-    color: colors.danger,
-    backgroundColor: colors.dangerBg,
-    borderColor: colors.danger,
-    borderStyle: "solid",
-    borderWidth: 1,
-    borderRadius: 6,
-  },
-  button: {
-    paddingBlock: 10,
-    paddingInline: 16,
-    fontFamily: "inherit",
-    fontSize: 16,
-    fontWeight: 500,
-    color: colors.accentText,
-    cursor: "pointer",
-    backgroundColor: colors.accent,
-    borderStyle: "none",
-    borderRadius: 6,
-  },
-  disabled: {
-    cursor: "default",
-    opacity: 0.6,
-  },
-  switch: {
-    marginTop: 16,
-    fontSize: 14,
-    color: colors.muted,
-  },
-  link: {
-    color: colors.foreground,
-    textDecoration: "underline",
-  },
-});

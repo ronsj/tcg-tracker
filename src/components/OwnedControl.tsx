@@ -1,8 +1,10 @@
 "use client";
 
 import { useOptimistic, useState, useTransition } from "react";
-import * as stylex from "@stylexjs/stylex";
-import { colors } from "@/app/tokens.stylex";
+import { Button } from "@astryxdesign/core/Button";
+import { HStack } from "@astryxdesign/core/Layout";
+import { Text } from "@astryxdesign/core/Text";
+import { tones } from "./tones";
 import { addToCollection, setCollectionQuantity } from "@/lib/actions/collection";
 
 type Props = {
@@ -30,103 +32,49 @@ export function OwnedControl({ variantId, itemId, quantity }: Props) {
     });
   }
 
+  const errorText = error && (
+    <Text role="alert" size="sm" xstyle={tones.error}>
+      {error}
+    </Text>
+  );
+
   if (optimistic === 0 || !itemId) {
     return (
-      <span {...stylex.props(styles.wrap)}>
-        <button
-          type="button"
+      <HStack gap={2} vAlign="center" wrap="wrap">
+        <Button
+          label="Add"
           aria-label="Add to collection"
-          disabled={pending}
+          size="sm"
+          isDisabled={pending}
           onClick={() => run(1, () => addToCollection(variantId))}
-          {...stylex.props(styles.button, styles.add, pending && styles.disabled)}
-        >
-          Add
-        </button>
-        {error && (
-          <span role="alert" {...stylex.props(styles.error)}>
-            {error}
-          </span>
-        )}
-      </span>
+        />
+        {errorText}
+      </HStack>
     );
   }
 
   return (
-    <span {...stylex.props(styles.wrap)}>
-      <span {...stylex.props(styles.group)}>
-        <button
-          type="button"
+    <HStack gap={2} vAlign="center" wrap="wrap">
+      <HStack gap={1} vAlign="center">
+        <Button
+          label="−"
           aria-label="Remove one"
-          disabled={pending}
+          size="sm"
+          isDisabled={pending}
           onClick={() => run(optimistic - 1, () => setCollectionQuantity(itemId, optimistic - 1))}
-          {...stylex.props(styles.button, styles.step, pending && styles.disabled)}
-        >
-          −
-        </button>
-        <span aria-live="polite" {...stylex.props(styles.qty)}>
+        />
+        <Text aria-live="polite" hasTabularNumbers>
           {optimistic}
-        </span>
-        <button
-          type="button"
+        </Text>
+        <Button
+          label="+"
           aria-label="Add one"
-          disabled={pending}
+          size="sm"
+          isDisabled={pending}
           onClick={() => run(optimistic + 1, () => setCollectionQuantity(itemId, optimistic + 1))}
-          {...stylex.props(styles.button, styles.step, pending && styles.disabled)}
-        >
-          +
-        </button>
-      </span>
-      {error && (
-        <span role="alert" {...stylex.props(styles.error)}>
-          {error}
-        </span>
-      )}
-    </span>
+        />
+      </HStack>
+      {errorText}
+    </HStack>
   );
 }
-
-const styles = stylex.create({
-  wrap: {
-    display: "inline-flex",
-    gap: 8,
-    alignItems: "center",
-  },
-  group: {
-    display: "inline-flex",
-    gap: 4,
-    alignItems: "center",
-  },
-  button: {
-    fontFamily: "inherit",
-    fontSize: 14,
-    color: colors.foreground,
-    cursor: "pointer",
-    backgroundColor: "transparent",
-    borderColor: colors.border,
-    borderStyle: "solid",
-    borderWidth: 1,
-    borderRadius: 6,
-  },
-  add: {
-    paddingBlock: 2,
-    paddingInline: 10,
-  },
-  step: {
-    minWidth: 26,
-    paddingBlock: 2,
-    paddingInline: 6,
-  },
-  disabled: {
-    cursor: "default",
-    opacity: 0.6,
-  },
-  qty: {
-    minWidth: 24,
-    fontVariantNumeric: "tabular-nums",
-    textAlign: "center",
-  },
-  error: {
-    fontSize: 12,
-    color: colors.danger,
-  },
-});

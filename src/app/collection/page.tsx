@@ -1,8 +1,13 @@
 import type { Metadata } from "next";
-import { Suspense } from "react";
-import * as stylex from "@stylexjs/stylex";
-import { colors } from "@/app/tokens.stylex";
+import { Suspense, type ReactNode } from "react";
+import type { StyleXStyles } from "@stylexjs/stylex";
+import { Card } from "@astryxdesign/core/Card";
+import { Grid } from "@astryxdesign/core/Grid";
+import { Heading } from "@astryxdesign/core/Heading";
+import { VStack } from "@astryxdesign/core/Layout";
+import { Text } from "@astryxdesign/core/Text";
 import { CollectionTable } from "@/components/CollectionTable";
+import { tones } from "@/components/tones";
 import { gainCents } from "@/lib/collection-math";
 import { formatCents } from "@/lib/format";
 import { getCollection, getCollectionTotals } from "@/lib/queries/collection";
@@ -12,7 +17,7 @@ export const metadata: Metadata = { title: "Collection" };
 
 export default function CollectionPage() {
   return (
-    <Suspense fallback={<p {...stylex.props(styles.main, styles.muted)}>Loading…</p>}>
+    <Suspense fallback={<Text type="supporting">Loading…</Text>}>
       <CollectionView />
     </Suspense>
   );
@@ -25,9 +30,9 @@ async function CollectionView() {
   const gain = gainCents(totals.valueCents, totals.costCents);
 
   return (
-    <main {...stylex.props(styles.main)}>
-      <h1 {...stylex.props(styles.title)}>Collection</h1>
-      <div {...stylex.props(styles.stats)}>
+    <VStack gap={6}>
+      <Heading level={1}>Collection</Heading>
+      <Grid columns={{ minWidth: 200 }} gap={3}>
         <Stat label="Cards" value={String(totals.items)} />
         <Stat label="Distinct printings" value={String(totals.distinct)} />
         <Stat label="Total value" value={formatCents(totals.valueCents)} />
@@ -35,70 +40,24 @@ async function CollectionView() {
           <Stat
             label={`Gain / loss (cost ${formatCents(totals.costCents)})`}
             value={`${gain > 0 ? "+" : gain < 0 ? "−" : ""}${formatCents(Math.abs(gain))}`}
-            tone={gain > 0 ? "up" : gain < 0 ? "down" : undefined}
+            xstyle={gain > 0 ? tones.up : gain < 0 ? tones.down : undefined}
           />
         )}
-      </div>
+      </Grid>
       <CollectionTable items={items} />
-    </main>
+    </VStack>
   );
 }
 
-function Stat({ label, value, tone }: { label: string; value: string; tone?: "up" | "down" }) {
+function Stat({ label, value, xstyle }: { label: ReactNode; value: string; xstyle?: StyleXStyles }) {
   return (
-    <div {...stylex.props(styles.tile)}>
-      <div {...stylex.props(styles.tileLabel)}>{label}</div>
-      <div {...stylex.props(styles.tileValue, tone === "up" && styles.up, tone === "down" && styles.down)}>
-        {value}
-      </div>
-    </div>
+    <Card>
+      <VStack gap={1}>
+        <Text type="supporting">{label}</Text>
+        <Text type="display-3" hasTabularNumbers xstyle={xstyle}>
+          {value}
+        </Text>
+      </VStack>
+    </Card>
   );
 }
-
-const styles = stylex.create({
-  main: {
-    display: "flex",
-    flexDirection: "column",
-    gap: 16,
-    maxWidth: 960,
-    padding: 32,
-    marginInline: "auto",
-  },
-  title: {
-    fontSize: 32,
-    fontWeight: 600,
-  },
-  muted: {
-    color: colors.muted,
-  },
-  stats: {
-    display: "flex",
-    flexWrap: "wrap",
-    gap: 12,
-  },
-  tile: {
-    flexGrow: 1,
-    flexBasis: 160,
-    padding: 12,
-    borderColor: colors.border,
-    borderStyle: "solid",
-    borderWidth: 1,
-    borderRadius: 8,
-  },
-  tileLabel: {
-    fontSize: 12,
-    color: colors.muted,
-  },
-  tileValue: {
-    marginTop: 4,
-    fontSize: 22,
-    fontWeight: 600,
-    fontVariantNumeric: "tabular-nums",
-  },
-  up: {
-    color: colors.positive,
-  },
-  down: {
-    color: colors.negative,
-  },
-});

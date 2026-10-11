@@ -1,14 +1,27 @@
 import { cacheLife, cacheTag } from "next/cache";
 import Image from "next/image";
-import Link from "next/link";
 import { notFound } from "next/navigation";
 import { connection } from "next/server";
 import { Suspense, type ReactNode } from "react";
-import * as stylex from "@stylexjs/stylex";
-import { colors } from "@/app/tokens.stylex";
+import type { StyleXStyles } from "@stylexjs/stylex";
+import { AspectRatio } from "@astryxdesign/core/AspectRatio";
+import { Breadcrumbs, BreadcrumbItem } from "@astryxdesign/core/Breadcrumbs";
+import { Heading } from "@astryxdesign/core/Heading";
+import { HStack, StackItem, VStack } from "@astryxdesign/core/Layout";
+import { Link } from "@astryxdesign/core/Link";
+import {
+  Table,
+  TableBody,
+  TableCell,
+  TableHeader,
+  TableHeaderCell,
+  TableRow,
+} from "@astryxdesign/core/Table";
+import { Text } from "@astryxdesign/core/Text";
 import { formatCents, formatDate, formatPct } from "@/lib/format";
 import { CONDITION_LABELS } from "@/lib/normalize/condition";
 import { OwnedControl } from "@/components/OwnedControl";
+import { changeTone } from "@/components/tones";
 import { getCard, getCardVariantPrices } from "@/lib/queries/cards";
 import { getOwnedQuantities } from "@/lib/queries/collection";
 import { getSession } from "@/lib/session";
@@ -18,7 +31,7 @@ const UUID_RE = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/
 
 export default function CardPage({ params }: PageProps<"/cards/[id]">) {
   return (
-    <Suspense fallback={<p {...stylex.props(styles.main, styles.muted)}>Loading…</p>}>
+    <Suspense fallback={<Text type="supporting">Loading…</Text>}>
       <CardView params={params} />
     </Suspense>
   );
@@ -30,10 +43,28 @@ async function CardView({ params }: { params: PageProps<"/cards/[id]">["params"]
   const { id } = await params;
   return (
     <CardDetails id={id}>
-      <Suspense fallback={<p {...stylex.props(styles.muted)}>Loading condition prices…</p>}>
+      <Suspense fallback={<Text type="supporting">Loading condition prices…</Text>}>
         <ConditionPrices cardId={id} />
       </Suspense>
     </CardDetails>
+  );
+}
+
+function Num({ children, xstyle }: { children: ReactNode; xstyle?: StyleXStyles }) {
+  return (
+    <Text display="block" justify="end" hasTabularNumbers xstyle={xstyle}>
+      {children}
+    </Text>
+  );
+}
+
+function NumHeader({ children }: { children: ReactNode }) {
+  return (
+    <TableHeaderCell>
+      <Text display="block" justify="end" weight="semibold">
+        {children}
+      </Text>
+    </TableHeaderCell>
   );
 }
 
@@ -48,68 +79,72 @@ async function CardDetails({ id, children }: { id: string; children: ReactNode }
   if (!card) notFound();
 
   return (
-    <main {...stylex.props(styles.main)}>
-      <Link href={`/sets/${card.setId}`} {...stylex.props(styles.back)}>
-        ← {card.setName}
-      </Link>
-      <h1 {...stylex.props(styles.title)}>{card.name}</h1>
-      <p {...stylex.props(styles.muted)}>
-        {[card.gameName, card.number, card.rarity].filter(Boolean).join(" · ")}
-      </p>
+    <VStack gap={6}>
+      <VStack gap={2}>
+        <Breadcrumbs>
+          <BreadcrumbItem href="/">All sets</BreadcrumbItem>
+          <BreadcrumbItem href={`/sets/${card.setId}`}>{card.setName}</BreadcrumbItem>
+          <BreadcrumbItem>{card.name}</BreadcrumbItem>
+        </Breadcrumbs>
+        <Heading level={1}>{card.name}</Heading>
+        <Text type="supporting">
+          {[card.gameName, card.number, card.rarity].filter(Boolean).join(" · ")}
+        </Text>
+      </VStack>
 
-      <div {...stylex.props(styles.layout)}>
+      <HStack gap={6} wrap="wrap" vAlign="start">
         {card.imageUrl && (
-          <Image
-            src={card.imageUrl}
-            alt={card.name}
-            width={300}
-            height={420}
-            priority
-            {...stylex.props(styles.image)}
-          />
+          <VStack width={300} maxWidth="100%">
+            <AspectRatio ratio={5 / 7} fit="contain">
+              <Image src={card.imageUrl} alt={card.name} width={300} height={420} priority />
+            </AspectRatio>
+          </VStack>
         )}
-        <div {...stylex.props(styles.tables)}>
-          <section>
-            <h2 {...stylex.props(styles.heading)}>Market prices by printing</h2>
-            {card.printingPrices.length === 0 ? (
-              <p {...stylex.props(styles.muted)}>No printing prices yet.</p>
-            ) : (
-              <div {...stylex.props(styles.scroll)}>
-                <table {...stylex.props(styles.table)}>
-                  <thead>
-                    <tr>
-                      <th {...stylex.props(styles.th)}>Printing</th>
-                      <th {...stylex.props(styles.th, styles.num)}>Market</th>
-                      <th {...stylex.props(styles.th, styles.num)}>Low</th>
-                      <th {...stylex.props(styles.th, styles.num)}>Median</th>
-                      <th {...stylex.props(styles.th, styles.num)}>As of</th>
-                    </tr>
-                  </thead>
-                  <tbody>
+        <StackItem size="fill">
+          <VStack gap={6}>
+            <VStack gap={3}>
+              <Heading level={2}>Market prices by printing</Heading>
+              {card.printingPrices.length === 0 ? (
+                <Text type="supporting">No printing prices yet.</Text>
+              ) : (
+                <Table>
+                  <TableHeader>
+                    <TableRow>
+                      <TableHeaderCell>Printing</TableHeaderCell>
+                      <NumHeader>Market</NumHeader>
+                      <NumHeader>Low</NumHeader>
+                      <NumHeader>Median</NumHeader>
+                      <NumHeader>As of</NumHeader>
+                    </TableRow>
+                  </TableHeader>
+                  <TableBody>
                     {card.printingPrices.map((p) => (
-                      <tr key={p.printing}>
-                        <td {...stylex.props(styles.td)}>{p.printing}</td>
-                        <td {...stylex.props(styles.td, styles.num)}>{formatCents(p.marketCents)}</td>
-                        <td {...stylex.props(styles.td, styles.num)}>{formatCents(p.lowCents)}</td>
-                        <td {...stylex.props(styles.td, styles.num)}>{formatCents(p.medianCents)}</td>
-                        <td {...stylex.props(styles.td, styles.num)}>{formatDate(p.marketAsOf)}</td>
-                      </tr>
+                      <TableRow key={p.printing}>
+                        <TableCell>{p.printing}</TableCell>
+                        <TableCell>
+                          <Num>{formatCents(p.marketCents)}</Num>
+                        </TableCell>
+                        <TableCell>
+                          <Num>{formatCents(p.lowCents)}</Num>
+                        </TableCell>
+                        <TableCell>
+                          <Num>{formatCents(p.medianCents)}</Num>
+                        </TableCell>
+                        <TableCell>
+                          <Num>{formatDate(p.marketAsOf)}</Num>
+                        </TableCell>
+                      </TableRow>
                     ))}
-                  </tbody>
-                </table>
-              </div>
-            )}
-          </section>
-          {children}
-        </div>
-      </div>
-    </main>
+                  </TableBody>
+                </Table>
+              )}
+            </VStack>
+            {children}
+          </VStack>
+        </StackItem>
+      </HStack>
+    </VStack>
   );
-}
-
-function changeStyle(n: number | null) {
-  if (n == null || n === 0) return undefined;
-  return n > 0 ? styles.up : styles.down;
 }
 
 // Not cached: reads the DB at request time and may call JustTCG on first view.
@@ -121,10 +156,10 @@ async function ConditionPrices({ cardId }: { cardId: string }) {
   const owned = session ? await getOwnedQuantities(session.user.id, cardId) : null;
 
   return (
-    <section>
-      <h2 {...stylex.props(styles.heading)}>Prices by condition</h2>
+    <VStack gap={3}>
+      <Heading level={2}>Prices by condition</Heading>
       {variants.length === 0 ? (
-        <p {...stylex.props(styles.muted)}>
+        <Text type="supporting">
           {reason === "quota"
             ? "Condition prices unavailable: daily API budget spent. Try again tomorrow."
             : reason === "unavailable"
@@ -132,169 +167,78 @@ async function ConditionPrices({ cardId }: { cardId: string }) {
               : reason === "no-tcgplayer-id"
                 ? "No condition prices: this card has no TCGplayer ID."
                 : "No condition prices for this card on JustTCG yet."}
-        </p>
+        </Text>
       ) : (
-        <div {...stylex.props(styles.scroll)}>
-          <table {...stylex.props(styles.table)}>
-            <thead>
-              <tr>
-                <th {...stylex.props(styles.th)}>Printing</th>
-                <th {...stylex.props(styles.th)}>Condition</th>
-                <th {...stylex.props(styles.th, styles.num)}>Price</th>
-                <th {...stylex.props(styles.th, styles.num)}>24h</th>
-                <th {...stylex.props(styles.th, styles.num)}>7d</th>
-                <th {...stylex.props(styles.th, styles.num)}>30d</th>
-                <th {...stylex.props(styles.th, styles.num)}>Observed</th>
-                {owned && <th {...stylex.props(styles.th)}>Owned</th>}
-              </tr>
-            </thead>
-            <tbody>
-              {variants.map((v) => (
-                <tr key={v.id}>
-                  <td {...stylex.props(styles.td)}>
-                    {v.printing}
-                    {v.language !== "English" && ` (${v.language})`}
-                  </td>
-                  <td {...stylex.props(styles.td)}>{CONDITION_LABELS[v.condition]}</td>
-                  <td {...stylex.props(styles.td, styles.num)}>
+        <Table>
+          <TableHeader>
+            <TableRow>
+              <TableHeaderCell>Printing</TableHeaderCell>
+              <TableHeaderCell>Condition</TableHeaderCell>
+              <NumHeader>Price</NumHeader>
+              <NumHeader>24h</NumHeader>
+              <NumHeader>7d</NumHeader>
+              <NumHeader>30d</NumHeader>
+              <NumHeader>Observed</NumHeader>
+              {owned && <TableHeaderCell>Owned</TableHeaderCell>}
+            </TableRow>
+          </TableHeader>
+          <TableBody>
+            {variants.map((v) => (
+              <TableRow key={v.id}>
+                <TableCell>
+                  {v.printing}
+                  {v.language !== "English" && ` (${v.language})`}
+                </TableCell>
+                <TableCell>{CONDITION_LABELS[v.condition]}</TableCell>
+                <TableCell>
+                  <Num>
                     {v.priceCents != null ? (
                       formatCents(v.priceCents)
                     ) : (
                       <>
                         —
                         {v.lastKnownPriceCents != null && (
-                          <span {...stylex.props(styles.muted)}>
+                          <Text type="supporting">
                             {" "}
                             (last known {formatCents(v.lastKnownPriceCents)})
-                          </span>
+                          </Text>
                         )}
                       </>
                     )}
-                  </td>
-                  <td {...stylex.props(styles.td, styles.num, changeStyle(v.change24hPct))}>
-                    {formatPct(v.change24hPct)}
-                  </td>
-                  <td {...stylex.props(styles.td, styles.num, changeStyle(v.change7dPct))}>
-                    {formatPct(v.change7dPct)}
-                  </td>
-                  <td {...stylex.props(styles.td, styles.num, changeStyle(v.change30dPct))}>
-                    {formatPct(v.change30dPct)}
-                  </td>
-                  <td {...stylex.props(styles.td, styles.num)}>{formatDate(v.observedAt)}</td>
-                  {owned && (
-                    <td {...stylex.props(styles.td)}>
-                      <OwnedControl
-                        variantId={v.id}
-                        itemId={owned.get(v.id)?.itemId}
-                        quantity={owned.get(v.id)?.quantity ?? 0}
-                      />
-                    </td>
-                  )}
-                </tr>
-              ))}
-            </tbody>
-          </table>
-        </div>
+                  </Num>
+                </TableCell>
+                <TableCell>
+                  <Num xstyle={changeTone(v.change24hPct)}>{formatPct(v.change24hPct)}</Num>
+                </TableCell>
+                <TableCell>
+                  <Num xstyle={changeTone(v.change7dPct)}>{formatPct(v.change7dPct)}</Num>
+                </TableCell>
+                <TableCell>
+                  <Num xstyle={changeTone(v.change30dPct)}>{formatPct(v.change30dPct)}</Num>
+                </TableCell>
+                <TableCell>
+                  <Num>{formatDate(v.observedAt)}</Num>
+                </TableCell>
+                {owned && (
+                  <TableCell>
+                    <OwnedControl
+                      variantId={v.id}
+                      itemId={owned.get(v.id)?.itemId}
+                      quantity={owned.get(v.id)?.quantity ?? 0}
+                    />
+                  </TableCell>
+                )}
+              </TableRow>
+            ))}
+          </TableBody>
+        </Table>
       )}
       {!owned && variants.length > 0 && (
-        <p {...stylex.props(styles.note)}>
-          <Link href="/sign-in" {...stylex.props(styles.noteLink)}>
-            Sign in
-          </Link>{" "}
-          to track what you own
-        </p>
+        <Text type="supporting">
+          <Link href="/sign-in">Sign in</Link> to track what you own
+        </Text>
       )}
-      <p {...stylex.props(styles.note)}>Prices from JustTCG</p>
-    </section>
+      <Text type="supporting">Prices from JustTCG</Text>
+    </VStack>
   );
 }
-
-const styles = stylex.create({
-  main: {
-    display: "flex",
-    flexDirection: "column",
-    gap: 8,
-    maxWidth: 960,
-    padding: 32,
-    marginInline: "auto",
-  },
-  back: {
-    fontSize: 14,
-    color: colors.muted,
-    textDecoration: "none",
-  },
-  title: {
-    fontSize: 32,
-    fontWeight: 600,
-  },
-  muted: {
-    color: colors.muted,
-  },
-  layout: {
-    display: "flex",
-    flexWrap: "wrap",
-    gap: 24,
-    alignItems: "flex-start",
-    marginTop: 16,
-  },
-  image: {
-    maxWidth: "100%",
-    height: "auto",
-    borderRadius: 12,
-  },
-  tables: {
-    display: "flex",
-    flexGrow: 1,
-    flexBasis: 320,
-    flexDirection: "column",
-    gap: 24,
-    minWidth: 0,
-  },
-  heading: {
-    marginBottom: 8,
-    fontSize: 20,
-    fontWeight: 600,
-  },
-  scroll: {
-    overflowX: "auto",
-  },
-  table: {
-    width: "100%",
-    fontSize: 14,
-    borderCollapse: "collapse",
-  },
-  th: {
-    paddingBlock: 6,
-    paddingInline: 8,
-    fontWeight: 500,
-    color: colors.muted,
-    textAlign: "left",
-    whiteSpace: "nowrap",
-  },
-  td: {
-    paddingBlock: 6,
-    paddingInline: 8,
-    whiteSpace: "nowrap",
-    borderTopColor: colors.border,
-    borderTopStyle: "solid",
-    borderTopWidth: 1,
-  },
-  num: {
-    fontVariantNumeric: "tabular-nums",
-    textAlign: "right",
-  },
-  up: {
-    color: colors.positive,
-  },
-  down: {
-    color: colors.negative,
-  },
-  note: {
-    marginTop: 8,
-    fontSize: 12,
-    color: colors.muted,
-  },
-  noteLink: {
-    textDecoration: "underline",
-  },
-});

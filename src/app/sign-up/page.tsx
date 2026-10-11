@@ -1,28 +1,21 @@
 import type { Metadata } from "next";
-import * as stylex from "@stylexjs/stylex";
+import { Card } from "@astryxdesign/core/Card";
+import { Center } from "@astryxdesign/core/Center";
+import { Heading } from "@astryxdesign/core/Heading";
+import { VStack } from "@astryxdesign/core/Layout";
 import { AuthForm } from "@/components/AuthForm";
 
 export const metadata: Metadata = { title: "Sign up" };
 
 export default function SignupPage() {
   return (
-    <main {...stylex.props(styles.main)}>
-      <h1 {...stylex.props(styles.title)}>Sign up</h1>
-      <AuthForm mode="sign-up" />
-    </main>
+    <Center axis="horizontal">
+      <Card width="100%" maxWidth={400} padding={6}>
+        <VStack gap={4}>
+          <Heading level={1}>Sign up</Heading>
+          <AuthForm mode="sign-up" />
+        </VStack>
+      </Card>
+    </Center>
   );
 }
-
-const styles = stylex.create({
-  main: {
-    display: "flex",
-    flexDirection: "column",
-    maxWidth: 400,
-    padding: 32,
-    marginInline: "auto",
-  },
-  title: {
-    fontSize: 32,
-    fontWeight: 600,
-  },
-});

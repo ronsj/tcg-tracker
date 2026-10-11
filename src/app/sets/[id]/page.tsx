@@ -1,18 +1,24 @@
 import { cacheLife, cacheTag } from "next/cache";
 import Image from "next/image";
-import Link from "next/link";
 import { notFound } from "next/navigation";
 import { Suspense } from "react";
 import * as stylex from "@stylexjs/stylex";
+import { AspectRatio } from "@astryxdesign/core/AspectRatio";
+import { Breadcrumbs, BreadcrumbItem } from "@astryxdesign/core/Breadcrumbs";
+import { Card } from "@astryxdesign/core/Card";
+import { Grid } from "@astryxdesign/core/Grid";
+import { Heading } from "@astryxdesign/core/Heading";
+import { VStack } from "@astryxdesign/core/Layout";
+import { Link } from "@astryxdesign/core/Link";
+import { Text } from "@astryxdesign/core/Text";
 import { formatCents, formatDate } from "@/lib/format";
 import { getSetWithCards } from "@/lib/queries/cards";
-import { colors } from "@/app/tokens.stylex";
 
 const UUID_RE = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
 
 export default function SetPage({ params }: PageProps<"/sets/[id]">) {
   return (
-    <Suspense fallback={<p {...stylex.props(styles.main, styles.meta)}>Loading…</p>}>
+    <Suspense fallback={<Text type="supporting">Loading…</Text>}>
       <SetView params={params} />
     </Suspense>
   );
@@ -36,93 +42,47 @@ async function SetContent({ id }: { id: string }) {
   const { set, cards } = data;
 
   return (
-    <main {...stylex.props(styles.main)}>
-      <Link href="/" {...stylex.props(styles.back)}>
-        ← All sets
-      </Link>
-      <h1 {...stylex.props(styles.title)}>{set.name}</h1>
-      <p {...stylex.props(styles.meta)}>
-        {set.gameName} · {formatDate(set.releaseDate)} · {cards.length} cards
-      </p>
+    <VStack gap={6}>
+      <VStack gap={2}>
+        <Breadcrumbs>
+          <BreadcrumbItem href="/">All sets</BreadcrumbItem>
+          <BreadcrumbItem>{set.name}</BreadcrumbItem>
+        </Breadcrumbs>
+        <Heading level={1}>{set.name}</Heading>
+        <Text type="supporting">
+          {set.gameName} · {formatDate(set.releaseDate)} · {cards.length} cards
+        </Text>
+      </VStack>
 
-      <ul {...stylex.props(styles.grid)}>
+      <Grid columns={{ minWidth: 180 }} gap={3}>
         {cards.map((c) => (
-          <li key={c.id}>
-            <Link href={`/cards/${c.id}`} {...stylex.props(styles.card)}>
-              {c.imageUrl ? (
-                <Image
-                  src={c.imageUrl}
-                  alt=""
-                  width={200}
-                  height={280}
-                  {...stylex.props(styles.image)}
-                />
-              ) : (
-                <div {...stylex.props(styles.image, styles.placeholder)} />
+          <Card key={c.id}>
+            <VStack gap={2}>
+              {c.imageUrl && (
+                <AspectRatio ratio={5 / 7} fit="contain" xstyle={styles.thumb}>
+                  <Image src={c.imageUrl} alt="" width={200} height={280} />
+                </AspectRatio>
               )}
-              <span {...stylex.props(styles.name)}>{c.name}</span>
-              <span {...stylex.props(styles.meta)}>
-                {[c.number, c.rarity].filter(Boolean).join(" · ")}
-              </span>
-              <span {...stylex.props(styles.price)}>{formatCents(c.marketCents)}</span>
-            </Link>
-          </li>
+              <VStack gap={0.5}>
+                <Link href={`/cards/${c.id}`} color="primary" weight="semibold" maxLines={2}>
+                  {c.name}
+                </Link>
+                <Text type="supporting">{[c.number, c.rarity].filter(Boolean).join(" · ")}</Text>
+                <Text weight="medium" hasTabularNumbers>
+                  {formatCents(c.marketCents)}
+                </Text>
+              </VStack>
+            </VStack>
+          </Card>
         ))}
-      </ul>
-    </main>
+      </Grid>
+    </VStack>
   );
 }
 
 const styles = stylex.create({
-  main: {
-    display: "flex",
-    flexDirection: "column",
-    gap: 8,
-    maxWidth: 960,
-    padding: 32,
-    marginInline: "auto",
-  },
-  back: {
-    fontSize: 14,
-    color: colors.muted,
-    textDecoration: "none",
-  },
-  title: {
-    fontSize: 32,
-    fontWeight: 600,
-  },
-  meta: {
-    fontSize: 14,
-    color: colors.muted,
-  },
-  grid: {
-    display: "grid",
-    gridTemplateColumns: "repeat(auto-fill, minmax(160px, 1fr))",
-    gap: 16,
-    padding: 0,
-    marginTop: 16,
-    listStyle: "none",
-  },
-  card: {
-    display: "flex",
-    flexDirection: "column",
-    gap: 4,
-    color: "inherit",
-    textDecoration: "none",
-  },
-  image: {
+  // AspectRatio derives its height from its width, and a stack child has none by default.
+  thumb: {
     width: "100%",
-    height: "auto",
-    aspectRatio: "5 / 7",
-    borderRadius: 8,
-  },
-  placeholder: {
-    backgroundColor: colors.border,
-  },
-  name: {
-    fontWeight: 600,
-  },
-  price: {
-    fontVariantNumeric: "tabular-nums",
   },
 });
