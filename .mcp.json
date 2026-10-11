@@ -1,5 +1,9 @@
 {
   "mcpServers": {
+    "astryx": {
+      "type": "url",
+      "url": "https://astryx.atmeta.com/mcp"
+    },
     "better-auth": {
       "url": "https://mcp.better-auth.com/mcp"
     },

@@ -16,7 +16,7 @@ Live: https://tcg-tracker-gold-three.vercel.app
 
 ## Stack
 
-Next.js 16 (App Router, Cache Components) · TypeScript · [StyleX](https://stylexjs.com) · [Neon](https://neon.com) Postgres · [Drizzle ORM](https://orm.drizzle.team) · [Better Auth](https://www.better-auth.com) · pnpm · Vitest
+Next.js 16 (App Router, Cache Components) · TypeScript · [Astryx](https://astryx.atmeta.com) design system · [Neon](https://neon.com) Postgres · [Drizzle ORM](https://orm.drizzle.team) · [Better Auth](https://www.better-auth.com) · pnpm · Vitest
 
 ## Getting started
 

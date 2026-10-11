@@ -6,7 +6,7 @@ Portfolio project (non-commercial): a Pokémon TCG + Magic: The Gathering + Rift
 - Next.js (App Router, TypeScript)
 - Neon Postgres + Drizzle ORM (`@neondatabase/serverless`, `drizzle-orm/neon-http`)
 - Better Auth (its tables come from its CLI, so don't hand-write them: `pnpm auth:generate` rewrites `src/db/auth-schema.ts`, then `pnpm db:generate` + `pnpm db:migrate`)
-- StyleX for styling
+- Astryx design system (`@astryxdesign/core`, StyleX-based; `pnpm astryx component <Name>` for docs). StyleX only for `xstyle` overrides with Astryx tokens.
 
 ## Status
 - [x] Cache schema drafted: `src/db/schema.ts`, `src/db/index.ts`, `drizzle.config.ts`
@@ -104,3 +104,33 @@ This version has breaking changes — APIs, conventions, and file structure may 
 This block is written and re-added by `next dev` — verify at `node_modules/next/dist/server/lib/generate-agent-files.js`. Removing it from a diff only re-creates the uncommitted change; committing it with your work keeps the tree clean.
 
 <!-- END:nextjs-agent-rules -->
+
+<!-- ASTRYX:START -->
+Astryx v0.6.8 · 168 components
+CLI: run every command as `pnpm exec astryx <cmd>` (shown below as `astryx ...`).
+
+SETUP (once, in app entry e.g. main.tsx) — without these, components render unstyled:
+  import "@astryxdesign/core/reset.css";
+  import "@astryxdesign/core/astryx.css";
+
+WORKFLOW — start every page from a template, never from scratch:
+1. `astryx build "<idea>"` — names the template to scaffold from and the parts it lacks.
+2. `astryx template <name> <path>` — scaffold it; keep its frame, gap and padding; replace the content.
+3. `astryx template <Block>` for parts it lacks; `astryx component <Name>` to read props before using one.
+Changing an existing page? Keep it: skip step 2 and add blocks/components inside its sections.
+
+RULES:
+- No <div> — components handle all layout and spacing.
+- Read `astryx docs layout` before changing a template's frame.
+- Dense data = rows (Table, List/Item), not Card-wrapped lists. Badge = counts only.
+- Style with component props first, then the xstyle prop / StyleX tokens. No raw hex/px.
+- Palettes and custom colors go through the theme, never :root overrides. See `astryx docs theme`.
+- SELF-CHECK: re-read the file; replace any className=, style={{…}}, raw <div>/<span>, imported .css/@apply, or hardcoded #hex/px with the component or the xstyle prop + a token.
+
+`astryx help` lists every command. Key ones beyond the workflow:
+  search "<query>"   find any component / hook / doc / template
+  discover <words>   integrations you could add
+  docs <topic>       getting-started, principles, tokens, theme … (`astryx docs` lists all)
+  docs cli           commands, API reference, integration authoring
+  upgrade --from <old version> --apply   run after a dependency bump
+<!-- ASTRYX:END -->
