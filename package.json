@@ -12,11 +12,14 @@
     "db:migrate": "drizzle-kit migrate",
     "db:studio": "drizzle-kit studio",
     "db:seed": "tsx --env-file=.env.local src/db/seed.ts",
-    "sync:catalog": "tsx --env-file=.env.local scripts/sync-catalog.ts"
+    "sync:catalog": "tsx --env-file=.env.local scripts/sync-catalog.ts",
+    "auth:generate": "node --env-file=.env.local node_modules/auth/dist/index.mjs generate --adapter drizzle --dialect pg --output src/db/auth-schema.ts -y"
   },
   "dependencies": {
+    "@better-auth/drizzle-adapter": "^1.7.7",
     "@neondatabase/serverless": "^1.2.0",
     "@stylexjs/stylex": "^0.19.1",
+    "better-auth": "^1.7.7",
     "drizzle-orm": "^0.45.4",
     "next": "16.4.0",
     "react": "19.3.0",
@@ -31,6 +34,7 @@
     "@types/node": "^20",
     "@types/react": "^19",
     "@types/react-dom": "^19",
+    "auth": "^1.7.7",
     "autoprefixer": "^10.6.1",
     "drizzle-kit": "^0.31.11",
     "eslint": "^9",
