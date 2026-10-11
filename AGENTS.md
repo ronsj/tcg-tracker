@@ -13,19 +13,19 @@ Portfolio project (non-commercial): a Pokémon TCG + Magic: The Gathering + Rift
 - [x] Scaffold Next.js (16, App Router, `src/`, Turbopack, pnpm). StyleX via its Babel + PostCSS plugins (`babel.config.js`, `postcss.config.js`, `@stylex` directive in `src/app/globals.css`).
 - [x] Initial migrations generated: `drizzle/0000_enable_pg_trgm.sql` (runs before the trigram index), `drizzle/0001_cache_schema.sql`
 - [x] Neon project created, migrations applied
-- [ ] API clients + normalization layer (condition strings → `NM|LP|MP|HP|DMG`)
+- [x] API clients with quota checks (`src/lib/sources/`) + normalization (`src/lib/normalize/`); games seeded (`pnpm db:seed`)
 - [ ] Sync jobs (catalog import, daily prices for tracked cards), with quota checks
 - [ ] Better Auth setup
 - [ ] Collection tracker (collection items reference `card_variant.id` and Better Auth `user.id`)
 
 ## Games
-Rows in the `game` table (not an enum), so adding a game is a data change. Both APIs cover all three.
+Rows in the `game` table (not an enum), seeded by `src/db/seed.ts`. Both APIs cover all three.
 
 | `game.id` | Name | `justtcg_game_id` | `tcgapi_game_slug` |
 |---|---|---|---|
-| `pokemon` | Pokémon | verify via `GET /games` | `pokemon` |
+| `pokemon` | Pokémon | `pokemon` | `pokemon` |
 | `mtg` | Magic: The Gathering | `magic-the-gathering` | `magic` |
-| `riftbound` | Riftbound: League of Legends TCG | verify via `GET /games` | `riftbound-league-of-legends-trading-card-game` |
+| `riftbound` | Riftbound: League of Legends TCG | `riftbound-league-of-legends-trading-card-game` | `riftbound-league-of-legends-trading-card-game` |
 
 ## Data sources
 Both free tiers: about 100 requests/day each, non-commercial only. Every outbound call must go through the quota check (`api_usage_daily`).
@@ -34,13 +34,18 @@ Both free tiers: about 100 requests/day each, non-commercial only. Every outboun
 - Card: `uuid` (use this, not the legacy slug `id`), `name`, `game`, `set`, `set_name`, `number`, `rarity`, `tcgplayerId`, `scryfallId`, `mtgjsonId`, `details`, `variants[]`
 - Variant: `uuid`, `condition`, `printing`, `language` (omitted = English), `tcgplayerSkuId`, `price`, `lastUpdated` (unix seconds), `priceStatus` (current|expired|unpriced), `lastKnownPrice`, `priceChange24hr|7d|30d|90d`, `priceHistory[{p,t}]`
 - `GET /cards` lookup by `tcgplayerId`, `scryfallId`, `mtgjsonId`, `tcgplayerSkuId`, `variantId`, `cardId`. `POST /cards` batch (20 per request on free tier). Pagination meta: `total, limit, offset, hasMore`.
-- Free tier: 1,000/month, 100/day, 10/min.
+- Free tier: 1,000/month, 100/day, 10/min. Monthly resets on the account-creation anniversary, daily at 00:00 UTC. Every response's `_metadata` has `apiRequestsRemaining` (monthly) and `apiDailyRequestsRemaining`.
+- Variants carry inline stats (`avgPrice30d`, `minPrice90d`, `trendSlope7d`, …). Condition `Sealed`/`S` is sealed product, so we skip it.
+- Free keys used from shared serverless infra (Vercel, Lambda) can get a temporary `EXCESSIVE_FREE_TIER_USAGE` block, so run JustTCG syncs from a non-serverless runner if that bites.
+- Full reference: https://justtcg.com/llms-full.txt
 
 **TCG API**: `https://api.tcgapi.dev/v1`, header `X-API-Key`
 - `GET /search?q=&game=`, `GET /sets?game=&page=&per_page=` (max 100), `GET /sets/:id/cards`, `GET /cards/:id`, `GET /cards/tcgplayer/:tcgplayerId`, `GET /cards/:id/prices?printing=`, `GET /cards/:id/history?range=month`
 - Card fields: `id`, `tcgplayer_id`, `name`, `number`, `rarity`, `image_url`, `set_id`, `set_name`, `game_id`, `custom_attributes`
 - Prices: by printing only (`market_price`, `low_price`, `median_price`, `lowest_with_shipping`, `buylist_price`, `price_change_24h|7d|30d`, `market_price_as_of`). Per-condition prices, set price dumps and bulk endpoints are Pro-only.
-- History `sales_volume`: `null` = not reported yet, `0` = no sales.
+- Free tier: `/cards/:id/history` returns only the last 7 days (date, printing, market, low). Sales volume is in `/history/detailed`, which is Pro+, so `printing_price_daily.sales_volume`/`avg_sales_cents` stay NULL on free.
+- Search results are flattened card + one printing's price and have no `set_id`; use `GET /cards/:id` for that.
+- Reports quota in `X-RateLimit-Remaining` and body `rate_limit.daily_remaining`. Full reference: https://tcgapi.dev/llms-full.txt
 
 ## Schema conventions
 - **TCGplayer product ID is the cross-source join key** (`card.tcgplayer_product_id`, unique). Sets are matched across sources through their cards, not by name.
