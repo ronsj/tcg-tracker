@@ -79,6 +79,11 @@ Both free tiers: about 100 requests/day each, non-commercial only. Every outboun
 - Everything else: fetch on first view, read from cache afterward. Raw search responses go in `api_response_cache`.
 - Storage budget: Neon free = 1 GB/project. Daily variant history ≈ 2 MB/day at about 20K rows.
 
+## Deployment
+- Vercel project `tcg-tracker` (auto-deploys from `main`; PRs get preview deployments), live at https://tcg-tracker-gold-three.vercel.app. `.vercel/` is git-ignored; `vercel link` re-creates it.
+- Env vars live in Vercel: Production uses the Neon `production` branch; Preview uses the `dev` branch. Each environment has its own `BETTER_AUTH_SECRET`. `ENABLE_EXPERIMENTAL_COREPACK=1` makes the build use the pnpm version pinned in `package.json` (Vercel's default pnpm is 10).
+- Preview deployments don't have `BETTER_AUTH_URL` set (their URLs vary), so auth there is best-effort until trusted origins are configured.
+
 ## Env
 ```
 DATABASE_URL=            # Neon pooled
