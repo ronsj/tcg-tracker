@@ -31,26 +31,27 @@ jobs:
   sync:
     runs-on: ubuntu-latest
     timeout-minutes: 30
-    env:
-      DATABASE_URL: ${{ secrets.DATABASE_URL }}
-      JUSTTCG_API_KEY: ${{ secrets.JUSTTCG_API_KEY }}
-      TCGAPI_API_KEY: ${{ secrets.TCGAPI_API_KEY }}
     steps:
-      - uses: actions/checkout@v4
+      # Pinned to commit SHAs so a moved tag can't change what runs here.
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
 
-      - uses: pnpm/action-setup@v4
+      - uses: pnpm/action-setup@ea17c68df8912ef543352723c149a84f56e3d413 # v6.1.0
 
-      - uses: actions/setup-node@v4
+      - uses: actions/setup-node@949feb2413d6458794dcd2491c4babbbce0c15c1 # v7.1.0
         with:
           node-version: 22
           cache: pnpm
 
       - run: pnpm install --frozen-lockfile
 
+      # Secrets are scoped to the two sync steps, so the setup actions never see them.
       # Inputs go through env vars rather than straight into the shell command.
       - name: Refresh prices for tracked cards
         if: ${{ github.event_name == 'schedule' || inputs.job == 'prices' }}
         env:
+          DATABASE_URL: ${{ secrets.DATABASE_URL }}
+          JUSTTCG_API_KEY: ${{ secrets.JUSTTCG_API_KEY }}
+          TCGAPI_API_KEY: ${{ secrets.TCGAPI_API_KEY }}
           MAX_REQUESTS: ${{ inputs.max_requests || '40' }}
           SOURCE: ${{ inputs.source }}
         run: |
@@ -61,6 +62,8 @@ jobs:
       - name: Import catalog
         if: ${{ github.event_name == 'workflow_dispatch' && inputs.job == 'catalog' }}
         env:
+          DATABASE_URL: ${{ secrets.DATABASE_URL }}
+          TCGAPI_API_KEY: ${{ secrets.TCGAPI_API_KEY }}
           GAME: ${{ inputs.game }}
           MAX_REQUESTS: ${{ inputs.max_requests || '40' }}
         run: pnpm exec tsx scripts/sync-catalog.ts "$GAME" --max-requests "$MAX_REQUESTS"
