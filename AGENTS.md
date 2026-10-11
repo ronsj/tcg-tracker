@@ -19,7 +19,7 @@ Portfolio project (non-commercial): a Pokémon TCG + Magic: The Gathering + Rift
 - [x] Daily price refresh for tracked cards: `pnpm sync:prices [--max-requests N] [--source justtcg|tcgapi]` (JustTCG batches of 20 per request; TCG API re-pages the sets that contain tracked cards)
 - [x] Better Auth (email + password): `src/lib/auth.ts`, `src/lib/auth-client.ts`, `src/lib/session.ts`; pages `/sign-in`, `/sign-up`, `/account`
 - [x] Collection tracker: `collection_item` (user × variant, quantity, optional cost basis), server actions in `src/lib/actions/collection.ts`, `/collection` page, Owned column on card pages
-- [ ] Schedule `pnpm sync:prices` daily (GitHub Actions cron or similar; needs the env secrets)
+- [x] `.github/workflows/sync.yml`: daily 06:00 UTC `sync:prices`; manual runs can also import a catalog. Needs repo secrets `DATABASE_URL`, `JUSTTCG_API_KEY`, `TCGAPI_API_KEY`.
 
 ## Games
 Rows in the `game` table (not an enum), seeded by `src/db/seed.ts`. Both APIs cover all three.

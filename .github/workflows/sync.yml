@@ -1,0 +1,66 @@
+name: Sync prices
+
+on:
+  schedule:
+    # Both APIs reset their daily quota at 00:00 UTC and TCG API publishes new
+    # prices just after; 06:00 UTC leaves room for either to run late.
+    - cron: "0 6 * * *"
+  workflow_dispatch:
+    inputs:
+      job:
+        description: Which job to run
+        type: choice
+        default: prices
+        options: [prices, catalog]
+      game:
+        description: Game id (catalog job only)
+        default: riftbound
+      max_requests:
+        description: Request budget for this run
+        default: "40"
+      source:
+        description: Limit the prices job to one source (justtcg or tcgapi); empty = both
+        default: ""
+
+# Never let two runs spend quota at the same time.
+concurrency:
+  group: sync
+  cancel-in-progress: false
+
+jobs:
+  sync:
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+    env:
+      DATABASE_URL: ${{ secrets.DATABASE_URL }}
+      JUSTTCG_API_KEY: ${{ secrets.JUSTTCG_API_KEY }}
+      TCGAPI_API_KEY: ${{ secrets.TCGAPI_API_KEY }}
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: pnpm/action-setup@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: pnpm
+
+      - run: pnpm install --frozen-lockfile
+
+      # Inputs go through env vars rather than straight into the shell command.
+      - name: Refresh prices for tracked cards
+        if: ${{ github.event_name == 'schedule' || inputs.job == 'prices' }}
+        env:
+          MAX_REQUESTS: ${{ inputs.max_requests || '40' }}
+          SOURCE: ${{ inputs.source }}
+        run: |
+          args=(--max-requests "$MAX_REQUESTS")
+          if [ -n "$SOURCE" ]; then args+=(--source "$SOURCE"); fi
+          pnpm exec tsx scripts/sync-prices.ts "${args[@]}"
+
+      - name: Import catalog
+        if: ${{ github.event_name == 'workflow_dispatch' && inputs.job == 'catalog' }}
+        env:
+          GAME: ${{ inputs.game }}
+          MAX_REQUESTS: ${{ inputs.max_requests || '40' }}
+        run: pnpm exec tsx scripts/sync-catalog.ts "$GAME" --max-requests "$MAX_REQUESTS"
