@@ -43,11 +43,9 @@ export default async function Home() {
                       {set.name}
                     </Link>
                     <Text type="supporting">{formatDate(set.releaseDate)}</Text>
-                    {set.cardCount != null && (
-                      <Text type="supporting">
-                        {set.cardCount} {set.cardCount === 1 ? "card" : "cards"}
-                      </Text>
-                    )}
+                    <Text type="supporting">
+                      {set.importedCount} {set.importedCount === 1 ? "card" : "cards"}
+                    </Text>
                   </VStack>
                 </Card>
               ))}

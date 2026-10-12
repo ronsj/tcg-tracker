@@ -13,19 +13,27 @@ import {
 // Plain reads. Pages decide whether to cache them.
 
 /** All sets, grouped by game in the caller; newest first within each game. */
+/**
+ * Sets that have at least one imported card. Catalog imports write set metadata
+ * before cards (and continue over several days), so unfinished sets stay hidden.
+ */
 export async function getSets() {
+  const importedCount = sql<number>`count(${card.id})::int`;
   return db
     .select({
       id: cardSet.id,
       name: cardSet.name,
       code: cardSet.code,
       releaseDate: cardSet.releaseDate,
-      cardCount: cardSet.cardCount,
+      importedCount,
       gameId: game.id,
       gameName: game.name,
     })
     .from(cardSet)
     .innerJoin(game, eq(cardSet.gameId, game.id))
+    .leftJoin(card, eq(card.setId, cardSet.id))
+    .groupBy(cardSet.id, game.id)
+    .having(sql`count(${card.id}) > 0`)
     .orderBy(asc(game.name), desc(cardSet.releaseDate), asc(cardSet.name));
 }
 
