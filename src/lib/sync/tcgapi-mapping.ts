@@ -57,6 +57,9 @@ export function mapSetCardRows(
       cards.set(tcgplayerProductId, card);
     }
 
+    // An unlisted card has no printing (and no prices), so keep the card but skip the price row.
+    if (!row.printing) continue;
+
     // Prices hang off the card we kept, in case two ids share a TCGplayer product.
     const priceKey = `${card.tcgapiCardId}\u0000${row.printing}`;
     if (!prices.has(priceKey)) {

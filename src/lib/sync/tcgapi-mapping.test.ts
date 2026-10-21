@@ -76,6 +76,28 @@ describe("mapSetCardRows", () => {
     ]);
   });
 
+  it("keeps a card with no printing but skips its price row", () => {
+    const { cards, prices } = mapSetCardRows(
+      [
+        row(),
+        row({
+          id: 2,
+          tcgplayer_id: 2,
+          printing: null,
+          market_price: null,
+          low_price: null,
+          median_price: null,
+          lowest_with_shipping: null,
+          market_price_as_of: null,
+          total_listings: 0,
+        }),
+      ],
+      ctx,
+    );
+    expect(cards.map((c) => c.tcgplayerProductId)).toEqual(["670598", "2"]);
+    expect(prices.map((p) => p.tcgapiCardId)).toEqual(["790766"]);
+  });
+
   it("dedupes an exact repeat of the same printing", () => {
     const { prices } = mapSetCardRows([row(), row()], ctx);
     expect(prices).toHaveLength(1);

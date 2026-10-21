@@ -163,8 +163,8 @@ export interface TcgApiSetCardRow {
   foil_only?: boolean | number;
   total_listings?: number | null;
   shipping_category_id?: number | null;
-  /** "Normal" or "Foil" */
-  printing: string;
+  /** "Normal" or "Foil"; null on unlisted cards that have no price */
+  printing: string | null;
   market_price?: number | null;
   /** UTC date (YYYY-MM-DD) */
   market_price_as_of?: string | null;
